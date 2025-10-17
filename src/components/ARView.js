@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { setupHitTest } from './simple-hit-test'
 
 // A-Frameはブラウザ環境に依存するため、SSR時にimportしない
 if (typeof window !== 'undefined') {
@@ -11,44 +12,42 @@ const ARView = ({ onSceneReady }) => {
   const [debugInfo, setDebugInfo] = React.useState('初期化中...')
 
   useEffect(() => {
-    // カスタムコンポーネントを登録
-    if (typeof window !== 'undefined' && window.AFRAME) {
-      if (!window.AFRAME.components['ar-cursor']) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        require('./aframe-ar-cursor')
-      }
-    }
-
     // A-Sceneが完全に読み込まれるのを待つ
     const sceneEl = sceneRef.current
     if (!sceneEl) return
 
     const handleLoaded = () => {
       setDebugInfo('シーン読み込み完了')
+      
+      // シンプルなHit-testをセットアップ
+      const cleanup = setupHitTest(sceneEl)
+      setDebugInfo('Hit-test設定完了')
+      
       if (typeof onSceneReady === 'function') {
         onSceneReady(sceneEl)
       }
+
+      return cleanup
     }
 
     // デバッグ: AR開始を検知
-    sceneEl.addEventListener('enter-vr', () => {
-      setDebugInfo('ARセッション開始')
-      setTimeout(() => {
-        const cursor = document.getElementById('ar-cursor')
-        if (cursor) {
-          const isVisible = cursor.getAttribute('visible')
-          setDebugInfo(`レティクル状態: ${isVisible}`)
-        } else {
-          setDebugInfo('レティクル要素が見つかりません')
-        }
-      }, 2000)
-    })
+    const handleEnterVR = () => {
+      setDebugInfo('✓ ARセッション開始')
+    }
+    
+    sceneEl.addEventListener('enter-vr', handleEnterVR)
 
     if (sceneEl.hasLoaded) {
-      handleLoaded()
+      const cleanup = handleLoaded()
+      return () => {
+        sceneEl.removeEventListener('enter-vr', handleEnterVR)
+        if (cleanup) cleanup()
+      }
     } else {
       sceneEl.addEventListener('loaded', handleLoaded)
-      return () => sceneEl.removeEventListener('loaded', handleLoaded)
+      return () => {
+        sceneEl.removeEventListener('enter-vr', handleEnterVR)
+      }
     }
   }, [onSceneReady])
 
@@ -57,9 +56,8 @@ const ARView = ({ onSceneReady }) => {
       <a-scene
         ref={sceneRef}
         renderer="colorManagement: true; antialias: true"
-        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay,local-floor; overlayElement: #ar-overlay"
+        webxr="optionalFeatures: hit-test,dom-overlay,local-floor; overlayElement: #ar-overlay"
         vr-mode-ui="enabled: false"
-        ar-cursor="cursorId: ar-cursor"
         embedded
         style={{ width: '100%', height: '100%' }}
       >
