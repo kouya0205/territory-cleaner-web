@@ -1,23 +1,14 @@
 "use client"
 
 import { useEffect, useState, useCallback } from 'react'
-import ControlsOverlay from '@/components/ControlsOverlay'
 import XRSupportBanner from '@/components/XRSupportBanner'
-import ToolSelector from '@/components/ToolSelector'
 
 export default function Home() {
   const [ClientARView, setClientARView] = useState<any>(null)
   const [sceneEl, setSceneEl] = useState<any>(null)
-  const [isTracking, setIsTracking] = useState(false)
-  const [selectedPreset, setSelectedPreset] = useState('fluorescent_pink')
-  const [resetFn, setResetFn] = useState<(() => void) | null>(null)
 
   const handleSceneReady = useCallback((el: any) => {
     setSceneEl(el)
-  }, [])
-
-  const handleReset = useCallback((fn: () => void) => {
-    setResetFn(() => fn)
   }, [])
 
   useEffect(() => {
@@ -33,35 +24,72 @@ export default function Home() {
     }
   }, [])
 
+  const handleStartAR = () => {
+    if (sceneEl && sceneEl.enterAR) {
+      sceneEl.enterAR()
+    }
+  }
+
+  const handleStopAR = () => {
+    if (sceneEl && sceneEl.exitVR) {
+      sceneEl.exitVR()
+    }
+  }
+
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen relative">
       <XRSupportBanner />
+      
       {ClientARView ? (
-        <ClientARView
-          onSceneReady={handleSceneReady}
-          isTracking={isTracking}
-          selectedPreset={selectedPreset}
-          onReset={handleReset}
-        />
+        <ClientARView onSceneReady={handleSceneReady} />
       ) : (
-        <div className="p-6">Loading AR…</div>
+        <div className="p-6 text-center">Loading AR Scene...</div>
       )}
-      <ToolSelector selectedPreset={selectedPreset} onSelectPreset={setSelectedPreset} />
-      <ControlsOverlay
-        onStart={() => {
-          if (sceneEl && sceneEl.enterAR) sceneEl.enterAR()
-          setIsTracking(true)
+
+      {/* コントロールボタン */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 16,
+          zIndex: 50,
         }}
-        onStop={() => {
-          if (sceneEl && sceneEl.exitVR) sceneEl.exitVR()
-          setIsTracking(false)
-        }}
-        onReset={() => {
-          if (resetFn) resetFn()
-        }}
-      />
+      >
+        <button
+          onClick={handleStartAR}
+          style={{
+            padding: '12px 24px',
+            background: '#16a34a',
+            color: '#fff',
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 'bold',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          START AR
+        </button>
+        <button
+          onClick={handleStopAR}
+          style={{
+            padding: '12px 24px',
+            background: '#ef4444',
+            color: '#fff',
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 'bold',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          EXIT AR
+        </button>
+      </div>
     </main>
   )
 }
-
-
