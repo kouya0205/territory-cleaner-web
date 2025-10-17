@@ -1,7 +1,4 @@
-// A-Frame用のWebXR hit-testカスタムコンポーネント
-// レティクル（床の推定位置を示す円）を画面中央からのhit-testで更新
-
-if (typeof window !== 'undefined' && window.AFRAME) {
+if (typeof window !== 'undefined' && window.AFRAME && !window.AFRAME.components['ar-hit-test']) {
   window.AFRAME.registerComponent('ar-hit-test', {
     init: function () {
       this.xrHitTestSource = null
