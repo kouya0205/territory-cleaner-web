@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ComponentType } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import ControlsOverlay from '@/components/ControlsOverlay'
 import XRSupportBanner from '@/components/XRSupportBanner'
 import ToolSelector from '@/components/ToolSelector'
@@ -11,6 +11,14 @@ export default function Home() {
   const [isTracking, setIsTracking] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState('fluorescent_pink')
   const [resetFn, setResetFn] = useState<(() => void) | null>(null)
+
+  const handleSceneReady = useCallback((el: any) => {
+    setSceneEl(el)
+  }, [])
+
+  const handleReset = useCallback((fn: () => void) => {
+    setResetFn(() => fn)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -30,10 +38,10 @@ export default function Home() {
       <XRSupportBanner />
       {ClientARView ? (
         <ClientARView
-          onSceneReady={(el: any) => setSceneEl(el)}
+          onSceneReady={handleSceneReady}
           isTracking={isTracking}
           selectedPreset={selectedPreset}
-          onReset={(fn: () => void) => setResetFn(() => fn)}
+          onReset={handleReset}
         />
       ) : (
         <div className="p-6">Loading AR…</div>
