@@ -63,20 +63,23 @@ export function setupHitTest(sceneEl) {
   // Tick処理 - 毎フレーム実行
   let frameCount = 0
   let lastHitCount = 0
+  let lastDebugUpdate = 0
   
   const renderLoop = () => {
     frameCount++
     const frame = sceneEl.frame
     const session = sceneEl.renderer?.xr?.getSession()
+    const now = Date.now()
 
-    // デバッグ: 各要素の状態を確認
-    if (frameCount % 60 === 0) { // 1秒に1回更新
-      if (!session) updateDebug('session無し')
-      else if (!frame) updateDebug('frame無し')
-      else if (!hitTestSource) updateDebug('hitTestSource無し')
-      else if (!refSpace) updateDebug('refSpace無し')
-      else if (!reticle) updateDebug('reticle無し')
-      else updateDebug(`検索中... (hits: ${lastHitCount})`)
+    // デバッグ: 各要素の状態を確認（1秒に1回）
+    if (now - lastDebugUpdate > 1000) {
+      lastDebugUpdate = now
+      if (!session) updateDebug(`[${frameCount}] session無し`)
+      else if (!frame) updateDebug(`[${frameCount}] frame無し`)
+      else if (!hitTestSource) updateDebug(`[${frameCount}] hitTestSource無し`)
+      else if (!refSpace) updateDebug(`[${frameCount}] refSpace無し`)
+      else if (!reticle) updateDebug(`[${frameCount}] reticle無し`)
+      else updateDebug(`[${frameCount}] 検索中 hits:${lastHitCount}`)
     }
 
     if (session && frame && hitTestSource && refSpace && reticle) {
@@ -105,16 +108,23 @@ export function setupHitTest(sceneEl) {
     }
   }
 
+  // 複数のイベントで試行
   sceneEl.addEventListener('renderstart', renderLoop)
-  
-  // フォールバック: sceneのtickイベントも使用
   sceneEl.addEventListener('tick', renderLoop)
+  
+  // setIntervalでも強制的に実行
+  const intervalId = setInterval(() => {
+    renderLoop()
+  }, 100) // 100ms = 10回/秒
 
-  updateDebug('初期化完了')
+  updateDebug('初期化完了 - ループ開始')
 
   return () => {
     sceneEl.removeEventListener('enter-vr', onSessionStart)
     sceneEl.removeEventListener('exit-vr', onSessionEnd)
+    sceneEl.removeEventListener('renderstart', renderLoop)
+    sceneEl.removeEventListener('tick', renderLoop)
+    clearInterval(intervalId)
   }
 }
 
