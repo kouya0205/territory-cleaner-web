@@ -61,31 +61,54 @@ export function setupHitTest(sceneEl) {
   sceneEl.addEventListener('exit-vr', onSessionEnd)
 
   // Tick処理 - 毎フレーム実行
+  let frameCount = 0
+  let lastHitCount = 0
+  
   const renderLoop = () => {
+    frameCount++
     const frame = sceneEl.frame
     const session = sceneEl.renderer?.xr?.getSession()
 
+    // デバッグ: 各要素の状態を確認
+    if (frameCount % 60 === 0) { // 1秒に1回更新
+      if (!session) updateDebug('session無し')
+      else if (!frame) updateDebug('frame無し')
+      else if (!hitTestSource) updateDebug('hitTestSource無し')
+      else if (!refSpace) updateDebug('refSpace無し')
+      else if (!reticle) updateDebug('reticle無し')
+      else updateDebug(`検索中... (hits: ${lastHitCount})`)
+    }
+
     if (session && frame && hitTestSource && refSpace && reticle) {
-      const hitTestResults = frame.getHitTestResults(hitTestSource)
-      
-      if (hitTestResults.length > 0) {
-        const hit = hitTestResults[0]
-        const pose = hit.getPose(refSpace)
+      try {
+        const hitTestResults = frame.getHitTestResults(hitTestSource)
+        lastHitCount = hitTestResults.length
         
-        if (pose) {
-          const pos = pose.transform.position
-          reticle.setAttribute('position', { x: pos.x, y: pos.y, z: pos.z })
-          reticle.setAttribute('visible', true)
-          updateDebug('✅ 床検出中！')
+        if (hitTestResults.length > 0) {
+          const hit = hitTestResults[0]
+          const pose = hit.getPose(refSpace)
+          
+          if (pose) {
+            const pos = pose.transform.position
+            reticle.setAttribute('position', { x: pos.x, y: pos.y, z: pos.z })
+            reticle.setAttribute('visible', true)
+            if (frameCount % 60 === 0) {
+              updateDebug(`✅ 床検出！(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`)
+            }
+          }
+        } else {
+          reticle.setAttribute('visible', false)
         }
-      } else {
-        reticle.setAttribute('visible', false)
-        // updateDebug('床を探しています...')  // メッセージ頻度を減らす
+      } catch (err) {
+        updateDebug('エラー: ' + err.message)
       }
     }
   }
 
   sceneEl.addEventListener('renderstart', renderLoop)
+  
+  // フォールバック: sceneのtickイベントも使用
+  sceneEl.addEventListener('tick', renderLoop)
 
   updateDebug('初期化完了')
 
