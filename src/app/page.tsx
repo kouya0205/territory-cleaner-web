@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from 'react'
 import ControlsOverlay from '@/components/ControlsOverlay'
+import XRSupportBanner from '@/components/XRSupportBanner'
 
 export default function Home() {
   const [ClientARView, setClientARView] = useState<ComponentType | null>(null)
@@ -23,6 +24,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
+      <XRSupportBanner />
       {ClientARView ? <ClientARView /> : <div className="p-6">Loading AR…</div>}
       <ControlsOverlay
         onStart={() => {
