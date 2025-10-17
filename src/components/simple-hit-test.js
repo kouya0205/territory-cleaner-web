@@ -35,8 +35,18 @@ export function setupHitTest(sceneEl) {
     session.requestReferenceSpace('local').then((space) => {
       refSpace = space
       updateDebug('2) RefSpace取得✓')
+      
+      // Hit-test sourceをすぐに取得開始
+      return session.requestReferenceSpace('viewer')
+    }).then((viewerSpace) => {
+      updateDebug('3) Viewer space取得✓')
+      return session.requestHitTestSource({ space: viewerSpace })
+    }).then((source) => {
+      hitTestSource = source
+      hitTestSourceRequested = true
+      updateDebug('4) Hit-source取得✓ 床を探しています...')
     }).catch((err) => {
-      updateDebug('❌ RefSpace失敗: ' + err.message)
+      updateDebug('❌ エラー: ' + err.message)
     })
   }
 
@@ -50,37 +60,12 @@ export function setupHitTest(sceneEl) {
   sceneEl.addEventListener('enter-vr', onSessionStart)
   sceneEl.addEventListener('exit-vr', onSessionEnd)
 
-  // Tick処理
-  sceneEl.addEventListener('renderstart', () => {
+  // Tick処理 - 毎フレーム実行
+  const renderLoop = () => {
     const frame = sceneEl.frame
     const session = sceneEl.renderer?.xr?.getSession()
 
-    if (!session || !frame) return
-
-    // Hit-test sourceをリクエスト（1回だけ）
-    if (!hitTestSourceRequested && session.requestHitTestSourceForTransientInput) {
-      hitTestSourceRequested = true
-      session.requestHitTestSourceForTransientInput({ profile: 'generic-touchscreen' })
-        .then((source) => {
-          hitTestSource = source
-          updateDebug('3) Hit-source取得✓ 床を探しています...')
-        })
-        .catch((err) => {
-          updateDebug('❌ Hit-source失敗: ' + err.message)
-          // フォールバック: viewer-based hit-test
-          session.requestReferenceSpace('viewer').then((viewerSpace) => {
-            return session.requestHitTestSource({ space: viewerSpace })
-          }).then((source) => {
-            hitTestSource = source
-            updateDebug('3) Hit-source取得✓(代替)')
-          }).catch((err2) => {
-            updateDebug('❌ 代替も失敗: ' + err2.message)
-          })
-        })
-    }
-
-    // Hit-testを実行
-    if (hitTestSource && refSpace && reticle) {
+    if (session && frame && hitTestSource && refSpace && reticle) {
       const hitTestResults = frame.getHitTestResults(hitTestSource)
       
       if (hitTestResults.length > 0) {
@@ -95,10 +80,12 @@ export function setupHitTest(sceneEl) {
         }
       } else {
         reticle.setAttribute('visible', false)
-        updateDebug('床を探しています...')
+        // updateDebug('床を探しています...')  // メッセージ頻度を減らす
       }
     }
-  })
+  }
+
+  sceneEl.addEventListener('renderstart', renderLoop)
 
   updateDebug('初期化完了')
 
