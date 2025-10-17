@@ -146,7 +146,7 @@ const ARView = ({ onSceneReady, isTracking, selectedPreset, onReset }) => {
       </a-scene>
 
       {/* DOM Overlay用の要素 */}
-      <div id="ar-overlay" style={{ position: 'absolute', top: 12, left: 12, color: '#fff', zIndex: 1000, pointerEvents: 'none' }}>
+      <div id="ar-overlay" style={{ position: 'absolute', top: 6, left: 12, color: '#000', zIndex: 1000, pointerEvents: 'none' }}>
         AR Mode
         <div style={{ marginTop: 8, fontSize: 18, fontWeight: 'bold' }}>掃除面積: {coveragePercent.toFixed(1)}%</div>
       </div>
