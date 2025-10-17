@@ -98,7 +98,10 @@ const ARView = ({ onSceneReady }) => {
         <div style={{ fontSize: 16, fontWeight: 'bold' }}>Territory Cleaner AR</div>
         <div style={{ marginTop: 4, fontSize: 14 }}>床を向けてください</div>
         <div style={{ marginTop: 8, fontSize: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 8px', borderRadius: 4 }}>
-          {debugInfo}
+          状態: {debugInfo}
+        </div>
+        <div id="debug-info" style={{ marginTop: 4, fontSize: 11, background: 'rgba(139, 0, 0, 0.8)', padding: '4px 8px', borderRadius: 4, color: '#ffff00' }}>
+          待機中...
         </div>
       </div>
     </div>
