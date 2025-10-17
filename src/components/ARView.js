@@ -41,7 +41,7 @@ const ARView = ({ onSceneReady }) => {
       <a-scene
         ref={sceneRef}
         renderer="colorManagement: true; antialias: true"
-        webxr="optionalFeatures: hit-test,dom-overlay,local-floor; overlayElement: #ar-overlay"
+        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay,local-floor; overlayElement: #ar-overlay"
         vr-mode-ui="enabled: false"
         ar-cursor="cursorId: ar-cursor"
         embedded
@@ -56,10 +56,10 @@ const ARView = ({ onSceneReady }) => {
         {/* レティクル（床の推定位置を示す円） */}
         <a-ring
           id="ar-cursor"
-          radius-inner="0.15"
-          radius-outer="0.2"
+          radius-inner="0.25"
+          radius-outer="0.35"
           rotation="-90 0 0"
-          material="color: #10b981; shader: flat; opacity: 0.8; transparent: true"
+          material="color: #10b981; shader: flat; side: double"
           visible="false"
         ></a-ring>
 

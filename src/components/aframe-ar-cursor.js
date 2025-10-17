@@ -13,35 +13,51 @@ if (typeof window !== 'undefined' && window.AFRAME && !window.AFRAME.components[
       this.refSpace = null
       this.cursorEl = null
 
+      console.log('[ar-cursor] Component initialized')
+
       // レティクル要素を探す
       this.el.addEventListener('loaded', () => {
         this.cursorEl = document.getElementById(this.data.cursorId)
+        console.log('[ar-cursor] Cursor element found:', this.cursorEl ? 'yes' : 'no')
         if (this.cursorEl) {
           this.cursorEl.setAttribute('visible', false)
         }
       })
 
       this.el.addEventListener('enter-vr', () => {
+        console.log('[ar-cursor] Entering VR/AR session')
         const session = this.el.renderer.xr.getSession()
-        if (session && session.requestReferenceSpace) {
-          session
-            .requestReferenceSpace('viewer')
-            .then((space) => {
-              this.viewerSpace = space
-              return session.requestHitTestSource({ space })
-            })
-            .then((hitTestSource) => {
-              this.xrHitTestSource = hitTestSource
-            })
-            .catch((err) => console.warn('hit-test init failed', err))
-
-          session.requestReferenceSpace('local').then((space) => {
-            this.refSpace = space
-          })
+        
+        if (!session) {
+          console.warn('[ar-cursor] No XR session found')
+          return
         }
+
+        console.log('[ar-cursor] XR session found, requesting hit-test')
+
+        session
+          .requestReferenceSpace('viewer')
+          .then((space) => {
+            console.log('[ar-cursor] Viewer space acquired')
+            this.viewerSpace = space
+            return session.requestHitTestSource({ space })
+          })
+          .then((hitTestSource) => {
+            console.log('[ar-cursor] Hit test source acquired')
+            this.xrHitTestSource = hitTestSource
+          })
+          .catch((err) => {
+            console.error('[ar-cursor] Hit-test init failed:', err)
+          })
+
+        session.requestReferenceSpace('local').then((space) => {
+          console.log('[ar-cursor] Local reference space acquired')
+          this.refSpace = space
+        })
       })
 
       this.el.addEventListener('exit-vr', () => {
+        console.log('[ar-cursor] Exiting VR/AR session')
         if (this.xrHitTestSource) {
           this.xrHitTestSource.cancel()
           this.xrHitTestSource = null
@@ -56,7 +72,9 @@ if (typeof window !== 'undefined' && window.AFRAME && !window.AFRAME.components[
 
     tick: function () {
       const frame = this.el.frame
-      if (!frame || !this.xrHitTestSource || !this.refSpace || !this.cursorEl) return
+      if (!frame || !this.xrHitTestSource || !this.refSpace || !this.cursorEl) {
+        return
+      }
 
       const hitTestResults = frame.getHitTestResults(this.xrHitTestSource)
       if (hitTestResults.length > 0) {
@@ -73,4 +91,3 @@ if (typeof window !== 'undefined' && window.AFRAME && !window.AFRAME.components[
     },
   })
 }
-
