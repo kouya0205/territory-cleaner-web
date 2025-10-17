@@ -13,8 +13,7 @@ export default function XRSupportBanner() {
         return
       }
       try {
-        // @ts-expect-error WebXR typings
-        const xr = navigator.xr
+        const xr = (navigator as any).xr
         const isSupported = await xr?.isSessionSupported?.('immersive-ar')
         mounted && setSupported(!!isSupported)
       } catch {
