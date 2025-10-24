@@ -22,10 +22,19 @@ export function setupFloorDrawing(sceneEl) {
     console.log('DEBUG:', msg) // コンソールにも出力
   }
   
-  // 詳細なデバッグ情報を画面に表示
+  // 詳細なデバッグ情報を画面に表示（簡潔版）
   function showDebugInfo(title, data) {
     const timestamp = new Date().toLocaleTimeString()
-    const debugMsg = `[${timestamp}] ${title}: ${JSON.stringify(data)}`
+    // 重要な情報のみ表示
+    const shortData = {
+      source: data.source,
+      enabled: data.drawingEnabled,
+      plane: data.floorPlane,
+      type: data.eventType,
+      x: data.clientX,
+      y: data.clientY
+    }
+    const debugMsg = `[${timestamp}] ${title}: ${JSON.stringify(shortData)}`
     updateDebug(debugMsg)
   }
   
@@ -73,11 +82,14 @@ export function setupFloorDrawing(sceneEl) {
     scene.add(floorPlane)
     
     const floorInfo = {
-      position: { x: floorPlane.position.x, y: floorPlane.position.y, z: floorPlane.position.z },
-      rotation: { x: floorPlane.rotation.x.toFixed(3), y: floorPlane.rotation.y.toFixed(3), z: floorPlane.rotation.z.toFixed(3) },
-      geometry: { width: geometry.parameters.width, height: geometry.parameters.height }
+      source: 'floor',
+      enabled: true,
+      plane: true,
+      type: 'created',
+      x: floorPlane.position.x,
+      y: floorPlane.position.y
     }
-    showDebugInfo('床面作成完了', floorInfo)
+    showDebugInfo('✅ 床面作成完了', floorInfo)
   }
   
   function worldToCanvas(worldPos) {
@@ -112,10 +124,14 @@ export function setupFloorDrawing(sceneEl) {
     }
     
     const drawInfo = {
-      worldPos: { x: worldPos.x.toFixed(3), y: worldPos.y.toFixed(3), z: worldPos.z.toFixed(3) },
-      canvasPos: { x: canvasPos.x.toFixed(0), y: canvasPos.y.toFixed(0) }
+      source: 'draw',
+      enabled: true,
+      plane: true,
+      type: 'execute',
+      x: canvasPos.x.toFixed(0),
+      y: canvasPos.y.toFixed(0)
     }
-    showDebugInfo('描画実行', drawInfo)
+    showDebugInfo('🎨 描画実行', drawInfo)
     
     // 青い円を描画
     ctx.fillStyle = '#3b82f6' // 青
@@ -161,14 +177,18 @@ export function setupFloorDrawing(sceneEl) {
   
   // タップ/クリックイベント
   function handleTap(event) {
+    // イベントの発生源を特定
+    const eventSource = event.target.id || event.target.tagName || 'unknown'
+    
     const tapInfo = {
+      source: eventSource,
       drawingEnabled,
       floorPlane: !!floorPlane,
       eventType: event.type,
       clientX: event.clientX,
       clientY: event.clientY
     }
-    showDebugInfo('タップイベント発生', tapInfo)
+    showDebugInfo('🎯 タップイベント発生', tapInfo)
     
     if (!drawingEnabled) {
       updateDebug('❌ 描画が無効')
@@ -186,10 +206,14 @@ export function setupFloorDrawing(sceneEl) {
     const y = -((event.clientY - rect.top) / rect.height) * 2 + 1
     
     const coordInfo = {
-      rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-      normalized: { x: x.toFixed(3), y: y.toFixed(3) }
+      source: 'coord',
+      enabled: true,
+      plane: true,
+      type: 'transform',
+      x: x.toFixed(3),
+      y: y.toFixed(3)
     }
-    showDebugInfo('座標変換', coordInfo)
+    showDebugInfo('📐 座標変換', coordInfo)
     
     // レイキャスティング
     const camera = sceneEl.camera
@@ -199,17 +223,26 @@ export function setupFloorDrawing(sceneEl) {
     const intersects = raycaster.intersectObject(floorPlane)
     
     const raycastInfo = {
-      intersectsCount: intersects.length,
-      intersects: intersects.map(i => ({
-        point: { x: i.point.x.toFixed(3), y: i.point.y.toFixed(3), z: i.point.z.toFixed(3) },
-        distance: i.distance.toFixed(3)
-      }))
+      source: 'raycast',
+      enabled: true,
+      plane: true,
+      type: 'intersect',
+      x: intersects.length,
+      y: intersects.length > 0 ? intersects[0].distance.toFixed(3) : '0'
     }
-    showDebugInfo('レイキャスティング結果', raycastInfo)
+    showDebugInfo('🔍 レイキャスティング結果', raycastInfo)
     
     if (intersects.length > 0) {
       const point = intersects[0].point
-      showDebugInfo('床面との交点発見', { x: point.x.toFixed(3), y: point.y.toFixed(3), z: point.z.toFixed(3) })
+      const hitInfo = {
+        source: 'hit',
+        enabled: true,
+        plane: true,
+        type: 'found',
+        x: point.x.toFixed(3),
+        y: point.y.toFixed(3)
+      }
+      showDebugInfo('✅ 床面との交点発見', hitInfo)
       drawAtPosition(point)
     } else {
       updateDebug('❌ 床面との交点なし')
@@ -223,12 +256,26 @@ export function setupFloorDrawing(sceneEl) {
   // DOM Overlay用のイベントリスナーも追加
   const overlayEl = document.getElementById('ar-overlay')
   if (overlayEl) {
-    overlayEl.addEventListener('click', handleTap)
-    overlayEl.addEventListener('touchstart', handleTap)
-    updateDebug('✅ DOM Overlayイベントリスナー追加')
+    // DOM Overlayのボタン部分のみにイベントリスナーを追加
+    const buttonArea = overlayEl.querySelector('div:last-child')
+    if (buttonArea) {
+      buttonArea.addEventListener('click', handleTap)
+      buttonArea.addEventListener('touchstart', handleTap)
+      updateDebug('✅ DOM Overlayボタンエリアにイベントリスナー追加')
+    } else {
+      // ボタンエリアが見つからない場合は全体に追加
+      overlayEl.addEventListener('click', handleTap)
+      overlayEl.addEventListener('touchstart', handleTap)
+      updateDebug('✅ DOM Overlay全体にイベントリスナー追加')
+    }
   } else {
     updateDebug('⚠️ DOM Overlay要素が見つからない')
   }
+  
+  // 追加: 画面全体にタッチイベントを追加（AR中は全画面なので）
+  document.addEventListener('click', handleTap)
+  document.addEventListener('touchstart', handleTap)
+  updateDebug('✅ 画面全体にイベントリスナー追加')
   
   // 初期化
   initCanvas()
@@ -240,8 +287,15 @@ export function setupFloorDrawing(sceneEl) {
   return {
     startDrawing: () => {
       drawingEnabled = true
-      const startInfo = { drawingEnabled, floorPlane: !!floorPlane }
-      showDebugInfo('描画開始', startInfo)
+      const startInfo = { 
+        source: 'start', 
+        enabled: drawingEnabled, 
+        plane: !!floorPlane, 
+        type: 'drawing', 
+        x: 0, 
+        y: 0 
+      }
+      showDebugInfo('🎨 描画開始', startInfo)
     },
     stopDrawing: () => {
       drawingEnabled = false

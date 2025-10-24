@@ -64,15 +64,16 @@ export function setupHitTest(sceneEl) {
   let frameCount = 0
   let lastHitCount = 0
   let lastDebugUpdate = 0
-  
+  let lastHitUpdate = 0
+
   const renderLoop = () => {
     frameCount++
     const frame = sceneEl.frame
     const session = sceneEl.renderer?.xr?.getSession()
     const now = Date.now()
 
-    // デバッグ: 各要素の状態を確認（1秒に1回）
-    if (now - lastDebugUpdate > 1000) {
+    // デバッグ: 各要素の状態を確認（3秒に1回）
+    if (now - lastDebugUpdate > 3000) {
       lastDebugUpdate = now
       if (!session) updateDebug(`[${frameCount}] session無し`)
       else if (!frame) updateDebug(`[${frameCount}] frame無し`)
@@ -95,7 +96,9 @@ export function setupHitTest(sceneEl) {
             const pos = pose.transform.position
             reticle.setAttribute('position', { x: pos.x, y: pos.y, z: pos.z })
             reticle.setAttribute('visible', true)
-            if (frameCount % 60 === 0) {
+            // 床検出メッセージを5秒に1回のみ表示
+            if (now - lastHitUpdate > 5000) {
+              lastHitUpdate = now
               updateDebug(`✅ 床検出！(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`)
             }
           }
