@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { setupHitTest } from './simple-hit-test'
+import { setupFloorDrawing } from './floor-drawing'
 
 // A-Frameはブラウザ環境に依存するため、SSR時にimportしない
 if (typeof window !== 'undefined') {
@@ -7,9 +8,10 @@ if (typeof window !== 'undefined') {
   require('aframe')
 }
 
-const ARView = ({ onSceneReady }) => {
+const ARView = ({ onSceneReady, drawingControls }) => {
   const sceneRef = useRef(null)
   const [debugInfo, setDebugInfo] = React.useState('初期化中...')
+  const floorDrawingRef = useRef(null)
 
   useEffect(() => {
     // A-Sceneが完全に読み込まれるのを待つ
@@ -20,14 +22,21 @@ const ARView = ({ onSceneReady }) => {
       setDebugInfo('シーン読み込み完了')
       
       // シンプルなHit-testをセットアップ
-      const cleanup = setupHitTest(sceneEl)
+      const hitTestCleanup = setupHitTest(sceneEl)
       setDebugInfo('Hit-test設定完了')
       
+      // 床面描画システムをセットアップ
+      const floorDrawing = setupFloorDrawing(sceneEl)
+      floorDrawingRef.current = floorDrawing
+      setDebugInfo('床面描画システム設定完了')
+      
       if (typeof onSceneReady === 'function') {
-        onSceneReady(sceneEl)
+        onSceneReady(sceneEl, floorDrawing)
       }
 
-      return cleanup
+      return () => {
+        if (hitTestCleanup) hitTestCleanup()
+      }
     }
 
     // デバッグ: AR開始を検知
@@ -56,7 +65,7 @@ const ARView = ({ onSceneReady }) => {
       <a-scene
         ref={sceneRef}
         renderer="colorManagement: true; antialias: true"
-        webxr="optionalFeatures: hit-test,dom-overlay,local-floor; overlayElement: #ar-overlay"
+        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay,local-floor; overlayElement: #ar-overlay"
         vr-mode-ui="enabled: false"
         embedded
         style={{ width: '100%', height: '100%' }}
