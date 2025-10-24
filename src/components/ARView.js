@@ -8,7 +8,7 @@ if (typeof window !== 'undefined') {
   require('aframe')
 }
 
-const ARView = ({ onSceneReady, onARStateChange }) => {
+const ARView = ({ onSceneReady, onARStateChange, drawingControls, areaPercentage, isDrawing }) => {
   const sceneRef = useRef(null)
   const [debugInfo, setDebugInfo] = React.useState('初期化中...')
   const floorDrawingRef = useRef(null)
@@ -114,15 +114,65 @@ const ARView = ({ onSceneReady, onARStateChange }) => {
       </a-scene>
 
       {/* DOM Overlay用の要素 */}
-      <div id="ar-overlay" style={{ position: 'absolute', top: 12, left: 12, color: '#fff', zIndex: 1000, pointerEvents: 'none', textShadow: '0 0 4px rgba(0,0,0,0.8)' }}>
-        <div style={{ fontSize: 16, fontWeight: 'bold' }}>Territory Cleaner AR</div>
-        <div style={{ marginTop: 4, fontSize: 14 }}>床を向けてください</div>
-        <div style={{ marginTop: 8, fontSize: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 8px', borderRadius: 4 }}>
-          状態: {debugInfo}
+      <div id="ar-overlay" style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+        color: '#fff', 
+        zIndex: 1000, 
+        pointerEvents: 'none', 
+        textShadow: '0 0 4px rgba(0,0,0,0.8)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: 12
+      }}>
+        {/* 上部情報 */}
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 'bold' }}>Territory Cleaner AR</div>
+          <div style={{ marginTop: 4, fontSize: 14 }}>床を向けてください</div>
+          <div style={{ marginTop: 8, fontSize: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 8px', borderRadius: 4 }}>
+            状態: {debugInfo}
+          </div>
+          <div id="debug-info" style={{ marginTop: 4, fontSize: 11, background: 'rgba(139, 0, 0, 0.8)', padding: '4px 8px', borderRadius: 4, color: '#ffff00' }}>
+            待機中...
+          </div>
         </div>
-        <div id="debug-info" style={{ marginTop: 4, fontSize: 11, background: 'rgba(139, 0, 0, 0.8)', padding: '4px 8px', borderRadius: 4, color: '#ffff00' }}>
-          待機中...
-        </div>
+
+        {/* 下部ボタン（AR中のみ表示） */}
+        {drawingControls && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: 12, 
+            flexWrap: 'wrap',
+            pointerEvents: 'auto' // ボタンはクリック可能にする
+          }}>
+            {drawingControls}
+          </div>
+        )}
+
+        {/* 面積表示（AR中かつ描画中のみ） */}
+        {isDrawing && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 24,
+              right: 24,
+              background: 'rgba(0,0,0,0.8)',
+              color: '#fff',
+              padding: '12px 16px',
+              borderRadius: 8,
+              fontSize: 18,
+              fontWeight: 'bold',
+              pointerEvents: 'none'
+            }}
+          >
+            掃除面積: {areaPercentage?.toFixed(1) || 0}%
+          </div>
+        )}
       </div>
     </div>
   )
