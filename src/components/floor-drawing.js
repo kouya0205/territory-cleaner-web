@@ -74,9 +74,20 @@ export function setupFloorDrawing(sceneEl) {
     floorPlane = new THREE.Mesh(geometry, material)
     
     // 床面を水平に配置（Y=-0.5）- カメラの下に配置
-    floorPlane.rotation.x = -Math.PI / 2
+    floorPlane.rotation.x = -Math.PI / 2  // 90度回転して水平に
     floorPlane.position.y = -0.5
     floorPlane.position.z = -2  // カメラの前方に配置
+    
+    // 床面の向きを確認
+    updateDebug('床面向き: ' + JSON.stringify({
+      rotation: { x: floorPlane.rotation.x.toFixed(3), y: floorPlane.rotation.y.toFixed(3), z: floorPlane.rotation.z.toFixed(3) },
+      position: { x: floorPlane.position.x.toFixed(3), y: floorPlane.position.y.toFixed(3), z: floorPlane.position.z.toFixed(3) }
+    }))
+    
+    // 床面を可視化するため、一時的に色を変更
+    floorPlane.material.color.setHex(0xff0000) // 赤色で可視化
+    floorPlane.material.opacity = 0.3
+    floorPlane.material.transparent = true
     
     // シーンに追加
     const scene = sceneEl.object3D
@@ -92,6 +103,14 @@ export function setupFloorDrawing(sceneEl) {
       z: floorPlane.position.z
     }
     showDebugInfo('✅ 床面作成完了', floorInfo)
+    
+    // 床面の境界ボックスを計算
+    floorPlane.geometry.computeBoundingBox()
+    const bbox = floorPlane.geometry.boundingBox
+    updateDebug('床面境界: ' + JSON.stringify({
+      min: { x: bbox.min.x, y: bbox.min.y, z: bbox.min.z },
+      max: { x: bbox.max.x, y: bbox.max.y, z: bbox.max.z }
+    }))
   }
   
   function worldToCanvas(worldPos) {
@@ -238,27 +257,50 @@ export function setupFloorDrawing(sceneEl) {
     }
     updateDebug('カメラ詳細: ' + JSON.stringify(cameraInfo))
     
-    const intersects = raycaster.intersectObject(floorPlane)
+    // レイの方向と原点を表示
+    const rayOrigin = raycaster.ray.origin
+    const rayDirection = raycaster.ray.direction
+    updateDebug('レイ詳細: ' + JSON.stringify({
+      origin: { x: rayOrigin.x.toFixed(3), y: rayOrigin.y.toFixed(3), z: rayOrigin.z.toFixed(3) },
+      direction: { x: rayDirection.x.toFixed(3), y: rayDirection.y.toFixed(3), z: rayDirection.z.toFixed(3) }
+    }))
+    
+    // 複数の方法でレイキャスティングを試行
+    const intersects1 = raycaster.intersectObject(floorPlane)
+    const intersects2 = raycaster.intersectObjects([floorPlane])
+    
+    // 床面のワールド座標での境界を計算
+    floorPlane.updateMatrixWorld()
+    const worldMatrix = floorPlane.matrixWorld
+    updateDebug('床面ワールド行列: ' + JSON.stringify({
+      position: { x: worldMatrix.elements[12].toFixed(3), y: worldMatrix.elements[13].toFixed(3), z: worldMatrix.elements[14].toFixed(3) }
+    }))
     
     const raycastInfo = {
       source: 'raycast',
       enabled: true,
       plane: true,
       type: 'intersect',
-      x: intersects.length,
-      y: intersects.length > 0 ? intersects[0].distance.toFixed(3) : '0'
+      x: intersects1.length,
+      y: intersects2.length,
+      method1: intersects1.length,
+      method2: intersects2.length
     }
     showDebugInfo('🔍 レイキャスティング結果', raycastInfo)
     
     // レイの詳細情報も表示
-    if (intersects.length > 0) {
-      const intersect = intersects[0]
+    if (intersects1.length > 0) {
+      const intersect = intersects1[0]
       updateDebug('交点詳細: ' + JSON.stringify({
         point: { x: intersect.point.x.toFixed(3), y: intersect.point.y.toFixed(3), z: intersect.point.z.toFixed(3) },
         distance: intersect.distance.toFixed(3),
         face: intersect.face ? 'あり' : 'なし'
       }))
+    } else {
+      updateDebug('❌ レイキャスティング失敗 - 床面との交点なし')
     }
+    
+    const intersects = intersects1.length > 0 ? intersects1 : intersects2
     
     if (intersects.length > 0) {
       const point = intersects[0].point
@@ -308,6 +350,28 @@ export function setupFloorDrawing(sceneEl) {
   // 初期化
   initCanvas()
   createFloorPlane()
+  
+  // ARセッション開始時に床面の位置を調整
+  const adjustFloorPosition = () => {
+    if (!floorPlane) return
+    
+    // カメラの位置に基づいて床面の位置を調整
+    const camera = sceneEl.camera
+    if (camera) {
+      // カメラの下1.5m、前方2mの位置に床面を配置
+      floorPlane.position.x = camera.position.x
+      floorPlane.position.y = camera.position.y - 1.5
+      floorPlane.position.z = camera.position.z - 2
+      
+      updateDebug('床面位置調整: ' + JSON.stringify({
+        camera: { x: camera.position.x.toFixed(3), y: camera.position.y.toFixed(3), z: camera.position.z.toFixed(3) },
+        floor: { x: floorPlane.position.x.toFixed(3), y: floorPlane.position.y.toFixed(3), z: floorPlane.position.z.toFixed(3) }
+      }))
+    }
+  }
+  
+  // ARセッション開始時に床面位置を調整
+  sceneEl.addEventListener('enter-vr', adjustFloorPosition)
   
   updateDebug('床面描画システム準備完了')
   
