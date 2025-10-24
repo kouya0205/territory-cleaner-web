@@ -136,7 +136,18 @@ const ARView = ({ onSceneReady, onARStateChange, drawingControls, areaPercentage
           <div style={{ marginTop: 8, fontSize: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 8px', borderRadius: 4 }}>
             状態: {debugInfo}
           </div>
-          <div id="debug-info" style={{ marginTop: 4, fontSize: 11, background: 'rgba(139, 0, 0, 0.8)', padding: '4px 8px', borderRadius: 4, color: '#ffff00' }}>
+          <div id="debug-info" style={{ 
+            marginTop: 4, 
+            fontSize: 10, 
+            background: 'rgba(139, 0, 0, 0.8)', 
+            padding: '6px 8px', 
+            borderRadius: 4, 
+            color: '#ffff00',
+            maxHeight: '120px',
+            overflowY: 'auto',
+            wordBreak: 'break-all',
+            lineHeight: '1.2'
+          }}>
             待機中...
           </div>
         </div>
