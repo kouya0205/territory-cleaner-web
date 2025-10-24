@@ -69,13 +69,14 @@ export function setupFloorDrawing(sceneEl) {
       return
     }
     
-    // 大きな床面を作成（2m x 2m）
-    const geometry = new THREE.PlaneGeometry(2, 2)
+    // 大きな床面を作成（4m x 4m）- サイズを拡大
+    const geometry = new THREE.PlaneGeometry(4, 4)
     floorPlane = new THREE.Mesh(geometry, material)
     
-    // 床面を水平に配置（Y=0）
+    // 床面を水平に配置（Y=-0.5）- カメラの下に配置
     floorPlane.rotation.x = -Math.PI / 2
-    floorPlane.position.y = 0
+    floorPlane.position.y = -0.5
+    floorPlane.position.z = -2  // カメラの前方に配置
     
     // シーンに追加
     const scene = sceneEl.object3D
@@ -87,7 +88,8 @@ export function setupFloorDrawing(sceneEl) {
       plane: true,
       type: 'created',
       x: floorPlane.position.x,
-      y: floorPlane.position.y
+      y: floorPlane.position.y,
+      z: floorPlane.position.z
     }
     showDebugInfo('✅ 床面作成完了', floorInfo)
   }
@@ -190,15 +192,24 @@ export function setupFloorDrawing(sceneEl) {
     }
     showDebugInfo('🎯 タップイベント発生', tapInfo)
     
+    // 描画状態の詳細チェック
     if (!drawingEnabled) {
-      updateDebug('❌ 描画が無効')
+      updateDebug('❌ 描画が無効 - drawingEnabled=' + drawingEnabled + ', floorPlane=' + !!floorPlane)
       return
     }
     
     if (!floorPlane) {
-      updateDebug('❌ 床面が未作成')
+      updateDebug('❌ 床面が未作成 - floorPlane=' + !!floorPlane)
       return
     }
+    
+    // 床面の詳細情報を表示
+    const floorDetails = {
+      position: { x: floorPlane.position.x, y: floorPlane.position.y, z: floorPlane.position.z },
+      rotation: { x: floorPlane.rotation.x, y: floorPlane.rotation.y, z: floorPlane.rotation.z },
+      visible: floorPlane.visible
+    }
+    updateDebug('床面詳細: ' + JSON.stringify(floorDetails))
     
     // マウス/タッチ座標を取得
     const rect = sceneEl.canvas.getBoundingClientRect()
@@ -220,6 +231,13 @@ export function setupFloorDrawing(sceneEl) {
     const raycaster = new THREE.Raycaster()
     raycaster.setFromCamera(new THREE.Vector2(x, y), camera)
     
+    // カメラとレイの詳細情報を表示
+    const cameraInfo = {
+      position: { x: camera.position.x.toFixed(3), y: camera.position.y.toFixed(3), z: camera.position.z.toFixed(3) },
+      rotation: { x: camera.rotation.x.toFixed(3), y: camera.rotation.y.toFixed(3), z: camera.rotation.z.toFixed(3) }
+    }
+    updateDebug('カメラ詳細: ' + JSON.stringify(cameraInfo))
+    
     const intersects = raycaster.intersectObject(floorPlane)
     
     const raycastInfo = {
@@ -231,6 +249,16 @@ export function setupFloorDrawing(sceneEl) {
       y: intersects.length > 0 ? intersects[0].distance.toFixed(3) : '0'
     }
     showDebugInfo('🔍 レイキャスティング結果', raycastInfo)
+    
+    // レイの詳細情報も表示
+    if (intersects.length > 0) {
+      const intersect = intersects[0]
+      updateDebug('交点詳細: ' + JSON.stringify({
+        point: { x: intersect.point.x.toFixed(3), y: intersect.point.y.toFixed(3), z: intersect.point.z.toFixed(3) },
+        distance: intersect.distance.toFixed(3),
+        face: intersect.face ? 'あり' : 'なし'
+      }))
+    }
     
     if (intersects.length > 0) {
       const point = intersects[0].point
@@ -296,6 +324,11 @@ export function setupFloorDrawing(sceneEl) {
         y: 0 
       }
       showDebugInfo('🎨 描画開始', startInfo)
+      
+      // 描画状態を確認
+      setTimeout(() => {
+        updateDebug('描画状態確認: drawingEnabled=' + drawingEnabled + ', floorPlane=' + !!floorPlane)
+      }, 100)
     },
     stopDrawing: () => {
       drawingEnabled = false
