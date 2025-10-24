@@ -9,10 +9,15 @@ export default function Home() {
   const [floorDrawing, setFloorDrawing] = useState<any>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [areaPercentage, setAreaPercentage] = useState(0)
+  const [isARMode, setIsARMode] = useState(false)
 
   const handleSceneReady = useCallback((el: any, drawing: any) => {
     setSceneEl(el)
     setFloorDrawing(drawing)
+  }, [])
+
+  const handleARStateChange = useCallback((isARActive: boolean) => {
+    setIsARMode(isARActive)
   }, [])
 
   useEffect(() => {
@@ -31,12 +36,19 @@ export default function Home() {
   const handleStartAR = () => {
     if (sceneEl && sceneEl.enterAR) {
       sceneEl.enterAR()
+      setIsARMode(true)
     }
   }
 
   const handleStopAR = () => {
     if (sceneEl && sceneEl.exitVR) {
       sceneEl.exitVR()
+      setIsARMode(false)
+      // AR終了時は描画も停止
+      if (floorDrawing) {
+        floorDrawing.stopDrawing()
+        setIsDrawing(false)
+      }
     }
   }
 
@@ -84,13 +96,16 @@ export default function Home() {
       <XRSupportBanner />
       
       {ClientARView ? (
-        <ClientARView onSceneReady={handleSceneReady} />
+        <ClientARView 
+          onSceneReady={handleSceneReady} 
+          onARStateChange={handleARStateChange}
+        />
       ) : (
         <div className="p-6 text-center">Loading AR Scene...</div>
       )}
 
-      {/* 面積表示 */}
-      {isDrawing && (
+      {/* 面積表示（AR中かつ描画中のみ） */}
+      {isARMode && isDrawing && (
         <div
           style={{
             position: 'fixed',
@@ -123,39 +138,43 @@ export default function Home() {
           flexWrap: 'wrap',
         }}
       >
-        <button
-          onClick={handleStartAR}
-          style={{
-            padding: '12px 20px',
-            background: '#16a34a',
-            color: '#fff',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 'bold',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          START AR
-        </button>
-        <button
-          onClick={handleStopAR}
-          style={{
-            padding: '12px 20px',
-            background: '#ef4444',
-            color: '#fff',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 'bold',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          EXIT AR
-        </button>
+        {/* AR制御ボタン */}
+        {!isARMode ? (
+          <button
+            onClick={handleStartAR}
+            style={{
+              padding: '12px 20px',
+              background: '#16a34a',
+              color: '#fff',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 'bold',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            START AR
+          </button>
+        ) : (
+          <button
+            onClick={handleStopAR}
+            style={{
+              padding: '12px 20px',
+              background: '#ef4444',
+              color: '#fff',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 'bold',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            EXIT AR
+          </button>
+        )}
         
-        {/* 描画制御ボタン */}
-        {floorDrawing && (
+        {/* 描画制御ボタン（AR中のみ表示） */}
+        {isARMode && floorDrawing && (
           <>
             {!isDrawing ? (
               <button

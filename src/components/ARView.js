@@ -8,7 +8,7 @@ if (typeof window !== 'undefined') {
   require('aframe')
 }
 
-const ARView = ({ onSceneReady, drawingControls }) => {
+const ARView = ({ onSceneReady, onARStateChange }) => {
   const sceneRef = useRef(null)
   const [debugInfo, setDebugInfo] = React.useState('初期化中...')
   const floorDrawingRef = useRef(null)
@@ -42,20 +42,33 @@ const ARView = ({ onSceneReady, drawingControls }) => {
     // デバッグ: AR開始を検知
     const handleEnterVR = () => {
       setDebugInfo('✓ ARセッション開始')
+      if (typeof onARStateChange === 'function') {
+        onARStateChange(true)
+      }
+    }
+
+    const handleExitVR = () => {
+      setDebugInfo('ARセッション終了')
+      if (typeof onARStateChange === 'function') {
+        onARStateChange(false)
+      }
     }
     
     sceneEl.addEventListener('enter-vr', handleEnterVR)
+    sceneEl.addEventListener('exit-vr', handleExitVR)
 
     if (sceneEl.hasLoaded) {
       const cleanup = handleLoaded()
       return () => {
         sceneEl.removeEventListener('enter-vr', handleEnterVR)
+        sceneEl.removeEventListener('exit-vr', handleExitVR)
         if (cleanup) cleanup()
       }
     } else {
       sceneEl.addEventListener('loaded', handleLoaded)
       return () => {
         sceneEl.removeEventListener('enter-vr', handleEnterVR)
+        sceneEl.removeEventListener('exit-vr', handleExitVR)
       }
     }
   }, [onSceneReady])
