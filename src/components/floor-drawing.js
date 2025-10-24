@@ -85,8 +85,8 @@ export function setupFloorDrawing(sceneEl) {
     }))
     
     // 床面を可視化するため、一時的に色を変更
-    floorPlane.material.color.setHex(0xff0000) // 赤色で可視化
-    floorPlane.material.opacity = 0.3
+    floorPlane.material.color.setHex(0x00ff00) // 緑色で可視化（より目立つ）
+    floorPlane.material.opacity = 0.5
     floorPlane.material.transparent = true
     
     // シーンに追加
@@ -120,15 +120,24 @@ export function setupFloorDrawing(sceneEl) {
     const localPos = new THREE.Vector3()
     floorPlane.worldToLocal(localPos.copy(worldPos))
     
-    // 床面のサイズ（2x2）をCanvasサイズ（512x512）にマッピング
-    const x = ((localPos.x + 1) / 2) * CANVAS_SIZE
-    const y = ((localPos.z + 1) / 2) * CANVAS_SIZE
+    // 床面のサイズ（4x4）をCanvasサイズ（512x512）にマッピング
+    // 床面は-2から+2の範囲なので、+2を足して0-4の範囲にする
+    const x = ((localPos.x + 2) / 4) * CANVAS_SIZE
+    const y = ((localPos.z + 2) / 4) * CANVAS_SIZE
+    
+    // デバッグ情報を追加
+    updateDebug('座標変換詳細: ' + JSON.stringify({
+      worldPos: { x: worldPos.x.toFixed(3), y: worldPos.y.toFixed(3), z: worldPos.z.toFixed(3) },
+      localPos: { x: localPos.x.toFixed(3), y: localPos.y.toFixed(3), z: localPos.z.toFixed(3) },
+      canvasPos: { x: x.toFixed(0), y: y.toFixed(0) }
+    }))
     
     // Canvas範囲内かチェック
     if (x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
       return { x, y }
     }
     
+    updateDebug('❌ Canvas範囲外: x=' + x.toFixed(0) + ', y=' + y.toFixed(0))
     return null
   }
   
@@ -153,6 +162,13 @@ export function setupFloorDrawing(sceneEl) {
       y: canvasPos.y.toFixed(0)
     }
     showDebugInfo('🎨 描画実行', drawInfo)
+    
+    // 描画位置の詳細情報を表示
+    updateDebug('描画位置詳細: ' + JSON.stringify({
+      worldPos: { x: worldPos.x.toFixed(3), y: worldPos.y.toFixed(3), z: worldPos.z.toFixed(3) },
+      canvasPos: { x: canvasPos.x.toFixed(0), y: canvasPos.y.toFixed(0) },
+      brushSize: BRUSH_SIZE
+    }))
     
     // 青い円を描画
     ctx.fillStyle = '#3b82f6' // 青
