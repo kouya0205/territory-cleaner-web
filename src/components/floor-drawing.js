@@ -120,16 +120,22 @@ export function setupFloorDrawing(sceneEl) {
     const localPos = new THREE.Vector3()
     floorPlane.worldToLocal(localPos.copy(worldPos))
     
-    // 床面のサイズ（4x4）をCanvasサイズ（512x512）にマッピング
-    // 床面は-2から+2の範囲なので、+2を足して0-4の範囲にする
-    const x = ((localPos.x + 2) / 4) * CANVAS_SIZE
-    const y = ((localPos.z + 2) / 4) * CANVAS_SIZE
+    // 床面の座標系を理解：
+    // - 床面は水平（rotation.x = -π/2）
+    // - ローカル座標では、X軸が左右、Z軸が前後
+    // - Canvasでは、X軸が左右、Y軸が上下
     
-    // デバッグ情報を追加
+    // 床面のサイズ（6x6、スケール1.5）をCanvasサイズ（512x512）にマッピング
+    // 床面は-3から+3の範囲なので、+3を足して0-6の範囲にする
+    const x = ((localPos.x + 3) / 6) * CANVAS_SIZE
+    const y = ((localPos.z + 3) / 6) * CANVAS_SIZE
+    
+    // デバッグ情報を追加（より詳細に）
     updateDebug('座標変換詳細: ' + JSON.stringify({
       worldPos: { x: worldPos.x.toFixed(3), y: worldPos.y.toFixed(3), z: worldPos.z.toFixed(3) },
       localPos: { x: localPos.x.toFixed(3), y: localPos.y.toFixed(3), z: localPos.z.toFixed(3) },
-      canvasPos: { x: x.toFixed(0), y: y.toFixed(0) }
+      canvasPos: { x: x.toFixed(0), y: y.toFixed(0) },
+      floorPos: { x: floorPlane.position.x.toFixed(3), y: floorPlane.position.y.toFixed(3), z: floorPlane.position.z.toFixed(3) }
     }))
     
     // Canvas範囲内かチェック
@@ -310,8 +316,18 @@ export function setupFloorDrawing(sceneEl) {
       updateDebug('交点詳細: ' + JSON.stringify({
         point: { x: intersect.point.x.toFixed(3), y: intersect.point.y.toFixed(3), z: intersect.point.z.toFixed(3) },
         distance: intersect.distance.toFixed(3),
-        face: intersect.face ? 'あり' : 'なし'
+        face: intersect.face ? 'あり' : 'なし',
+        uv: intersect.uv ? { u: intersect.uv.x.toFixed(3), v: intersect.uv.y.toFixed(3) } : 'なし'
       }))
+      
+      // 交点が床面のどの位置にあるかを分析
+      const floorCenter = floorPlane.position
+      const offset = {
+        x: (intersect.point.x - floorCenter.x).toFixed(3),
+        y: (intersect.point.y - floorCenter.y).toFixed(3),
+        z: (intersect.point.z - floorCenter.z).toFixed(3)
+      }
+      updateDebug('床面からのオフセット: ' + JSON.stringify(offset))
     } else {
       updateDebug('❌ レイキャスティング失敗 - 床面との交点なし')
     }
@@ -374,14 +390,18 @@ export function setupFloorDrawing(sceneEl) {
     // カメラの位置に基づいて床面の位置を調整
     const camera = sceneEl.camera
     if (camera) {
-      // カメラの下1.5m、前方2mの位置に床面を配置
+      // より大きな床面を配置（カメラの周囲をカバー）
       floorPlane.position.x = camera.position.x
-      floorPlane.position.y = camera.position.y - 1.5
-      floorPlane.position.z = camera.position.z - 2
+      floorPlane.position.y = camera.position.y - 1.0  // カメラの下1m
+      floorPlane.position.z = camera.position.z - 1.0  // カメラの前方1m
+      
+      // 床面のサイズをさらに大きく（6m x 6m）
+      floorPlane.scale.set(1.5, 1.5, 1.5)  // 4m x 1.5 = 6m
       
       updateDebug('床面位置調整: ' + JSON.stringify({
         camera: { x: camera.position.x.toFixed(3), y: camera.position.y.toFixed(3), z: camera.position.z.toFixed(3) },
-        floor: { x: floorPlane.position.x.toFixed(3), y: floorPlane.position.y.toFixed(3), z: floorPlane.position.z.toFixed(3) }
+        floor: { x: floorPlane.position.x.toFixed(3), y: floorPlane.position.y.toFixed(3), z: floorPlane.position.z.toFixed(3) },
+        scale: { x: floorPlane.scale.x.toFixed(3), y: floorPlane.scale.y.toFixed(3), z: floorPlane.scale.z.toFixed(3) }
       }))
     }
   }
